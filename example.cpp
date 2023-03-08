@@ -3,15 +3,15 @@
 int main(int argc, char *argv[])
 {
     coderatny::arg_parser args;
-    args.set_opt("-a", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_VECTOR_CHAR);
-    args.set_opt("-b", coderatny::ARGS_REQUIRED, coderatny::ARGS_TYPE_VECTOR_INT);
-    args.set_opt("-c", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_VECTOR_FLOAT);
-    args.set_opt("-d", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_VECTOR_STRING);
-    args.set_opt("-e", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_CHAR);
-    args.set_opt("-f", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_INT);
-    args.set_opt("-g", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_FLOAT);
-    args.set_opt("-h", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_STRING);
-    args.set_opt("-i", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_BOOL);
+    args.set_opt("-a,-A", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_VECTOR_CHAR, "for aboba");
+    args.set_opt("-b", coderatny::ARGS_REQUIRED, coderatny::ARGS_TYPE_VECTOR_INT, "for amogus");
+    args.set_opt("-c", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_VECTOR_FLOAT, "for cringe");
+    args.set_opt("-d", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_VECTOR_STRING, "for minecraft");
+    args.set_opt("-e", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_CHAR, "for me");
+    args.set_opt("-f", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_INT, "for evjenya");
+    args.set_opt("-g", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_FLOAT, "geting my aboba");
+    args.set_opt("-h", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_STRING, "yarik");
+    args.set_opt("-i", coderatny::ARGS_OPTIONAL, coderatny::ARGS_TYPE_BOOL, "hello world");
 
     args.parse(argc, argv);
 

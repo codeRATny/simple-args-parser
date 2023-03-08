@@ -35,6 +35,7 @@ namespace coderatny
         std::vector<std::string> opts;
         cdrtnrgs_necessity necessity;
         cdrtnrgs_type type;
+        std::string description;
     };
 
     class arg_parser
@@ -126,9 +127,72 @@ namespace coderatny
             return 0;
         }
 
+        std::string get_type_str(cdrtnrgs_type type)
+        {
+            switch (type)
+            {
+            case ARGS_TYPE_INT:
+                return "INT";
+            case ARGS_TYPE_FLOAT:
+                return "FLOAT";
+            case ARGS_TYPE_CHAR:
+                return "CHAR";
+            case ARGS_TYPE_STRING:
+                return "STRING";
+            case ARGS_TYPE_BOOL:
+                return "BOOL";
+            case ARGS_TYPE_VECTOR_INT:
+                return "INT VECTOR";
+            case ARGS_TYPE_VECTOR_FLOAT:
+                return "FLOAT VECTOR";
+            case ARGS_TYPE_VECTOR_CHAR:
+                return "CHAR VECTOR";
+            case ARGS_TYPE_VECTOR_STRING:
+                return "STRING VECTOR";
+            default:
+                return "UNKNOWN TYPE";
+            }
+        }
+
+        std::string get_necessity_str(cdrtnrgs_necessity necessity)
+        {
+            switch (necessity)
+            {
+            case ARGS_REQUIRED:
+                return "REQUIRED ARGUMENT";
+            case ARGS_OPTIONAL:
+                return "OPTIONAL ARGUMENT";
+            default:
+                return "UNKNOWN";
+            }
+        }
+
+        void help()
+        {
+            std::cout << "Opts:\n";
+            for (size_t i = 0; i < opts.size(); i++)
+            {
+                std::cout << "\t" << i << ": ";
+                for (auto& j : opts[i].opts)
+                {
+                    std::cout << j << " ";
+                }
+                std::cout << ", " << get_type_str(opts[i].type) << ", " << get_necessity_str(opts[i].necessity)<< ", " << opts[i].description << "\n";
+            }
+        }
+
     public:
         void parse(int argc, char *argv[])
         {
+            if (argc > 1)
+            {
+                if ((!strcmp(argv[1], "-help")) | (!strcmp(argv[1], "--help")))
+                {
+                    help();
+                    exit(1);
+                }
+            }
+
             int idx = -1;
 
             for (int i = 0; i < argc; i++)
@@ -153,6 +217,12 @@ namespace coderatny
 
             for (size_t i = 0; i < opts.size(); i++)
             {
+                if (args[i].size() == 0) {
+                    std::cout << "empty argument "
+                              << opts[i].opts[0] << "\n";
+                    exit(1);
+                }
+
                 if (args.find(i) == args.end())
                 {
                     if (opts[i].necessity == ARGS_OPTIONAL)
@@ -182,12 +252,13 @@ namespace coderatny
             }
         }
 
-        void set_opt(std::string opt, cdrtnrgs_necessity necessity, cdrtnrgs_type type)
+        void set_opt(std::string opt, cdrtnrgs_necessity necessity, cdrtnrgs_type type, std::string description)
         {
             size_t idx = opts.size();
             opts.emplace_back();
             opts[idx].necessity = necessity;
             opts[idx].type = type;
+            opts[idx].description = description;
 
             size_t pos = 0;
             std::string token;
