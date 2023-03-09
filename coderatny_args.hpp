@@ -36,6 +36,7 @@ namespace coderatny
         cdrtnrgs_necessity necessity;
         cdrtnrgs_type type;
         std::string description;
+        bool аvailability = false;
     };
 
     class arg_parser
@@ -81,11 +82,7 @@ namespace coderatny
                     break;
 
                 case ARGS_TYPE_BOOL:
-                    if ((ar[0] == "true") | (ar[0] == "false") | (ar[0] == "yes") | (ar[0] == "no") | (ar[0] == "0") | (ar[0] == "1"))
-                    {
-                        return 0;
-                    }
-                    return -1;
+                    return 0;
 
                 case ARGS_TYPE_VECTOR_INT:
 
@@ -205,6 +202,7 @@ namespace coderatny
                         std::cout << "unrecognized args!\n";
                         exit(1);
                     }
+                    opts[idx].аvailability = true;
 
                     continue;
                 }
@@ -218,6 +216,10 @@ namespace coderatny
             for (size_t i = 0; i < opts.size(); i++)
             {
                 if (args[i].size() == 0) {
+                    if (opts[i].necessity == ARGS_OPTIONAL)
+                    {
+                        continue;
+                    }
                     std::cout << "empty argument "
                               << opts[i].opts[0] << "\n";
                     exit(1);
@@ -225,10 +227,6 @@ namespace coderatny
 
                 if (args.find(i) == args.end())
                 {
-                    if (opts[i].necessity == ARGS_OPTIONAL)
-                    {
-                        continue;
-                    }
                     std::cout << "dont find required option! "
                               << opts[i].opts[0] << "\n";
                     exit(1);
@@ -322,33 +320,36 @@ namespace coderatny
         {
             int idx = find_in_vector_of_vector(arg);
 
-            if (idx == -1)
+            if ((idx == -1))
             {
-                return T(-1);
+                std::cout << "unknown opt!\n";
+                exit(1); // temp
             }
 
             if (typeid(T).hash_code() == typeid(int).hash_code())
             {
+                if (args.at(idx).size() == 0) {
+                    return -1;
+                }
                 return std::stoi(args.at(idx)[0]);
             }
             else if (typeid(T).hash_code() == typeid(float).hash_code())
             {
+                if (args.at(idx).size() == 0) {
+                    return -1;
+                }
                 return std::stof(args.at(idx)[0]);
             }
             else if (typeid(T).hash_code() == typeid(char).hash_code())
             {
+                if (args.at(idx).size() == 0) {
+                    return -1;
+                }
                 return args.at(idx)[0][0];
             }
             else if (typeid(T).hash_code() == typeid(bool).hash_code())
             {
-                if (args.at(idx)[0] == "true" | args.at(idx)[0] == "yes" | args.at(idx)[0] == "1")
-                {
-                    return true;
-                }
-                else if (args.at(idx)[0] == "false" | args.at(idx)[0] == "no" | args.at(idx)[0] == "0")
-                {
-                    return false;
-                }
+                return opts[idx].аvailability;
             }
 
             return T(-1);
@@ -360,6 +361,10 @@ namespace coderatny
 
             if (idx == -1)
             {
+                return "";
+            }
+
+            if (args.at(idx).size() == 0) {
                 return "";
             }
 
