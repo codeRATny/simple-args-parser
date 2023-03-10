@@ -8,6 +8,7 @@
 #include <vector>
 #include <algorithm>
 #include <bits/stdc++.h>
+#include <sstream>
 
 namespace coderatny
 {
@@ -37,6 +38,8 @@ namespace coderatny
         cdrtnrgs_type type;
         std::string description;
         bool аvailability = false;
+        bool shackles = false;
+        size_t shackle_id;
     };
 
     class arg_parser
@@ -44,8 +47,37 @@ namespace coderatny
     private:
         std::unordered_map<int, std::vector<std::string>> args;
         std::vector<opt_struct> opts;
+        std::vector<std::vector<std::string>> shackled_opts;
 
-        int find_in_vector_of_vector(std::string arg)
+        int check_shackled_opts()
+        {
+            for (auto& i : shackled_opts)
+            {
+                size_t shackled_opts_size = i.size();
+                uint8_t аvailability_counter = 0;
+
+                for (auto &j : i)
+                {
+                    int idx = get_opt_index(j);
+                    if (idx == -1)
+                    {
+                        std::cout << "unknown opt!\n";
+                        exit(1);
+                    }
+                    аvailability_counter += (int)opts[idx].аvailability;
+                }
+                
+                if (!((аvailability_counter == 0) || (аvailability_counter == shackled_opts_size)))
+                {
+                    std::cout << "not all shackled opts found!\n";
+                    exit(1);
+                }
+
+            }
+                return 0;
+        }
+
+        int get_opt_index(std::string arg)
         {
             for (size_t i = 0; i < opts.size(); i++)
             {
@@ -169,12 +201,26 @@ namespace coderatny
             std::cout << "Opts:\n";
             for (size_t i = 0; i < opts.size(); i++)
             {
-                std::cout << "\t" << i << ": ";
-                for (auto& j : opts[i].opts)
+                std::stringstream shackled_with;
+                for (auto &j : opts[i].opts)
                 {
-                    std::cout << j << " ";
+                    std::cout << "\t" << j << ":";
+
+                    if (opts[i].shackles)
+                    {
+                        shackled_with << "\t\tshackled with:";
+                        for (auto& k : shackled_opts[opts[i].shackle_id])
+                        {
+                            if (j != k)
+                            {
+                                shackled_with << " " << k;
+                            }
+                        }
+                        shackled_with << "\n";
+                    }
                 }
-                std::cout << ", " << get_type_str(opts[i].type) << ", " << get_necessity_str(opts[i].necessity)<< ", " << opts[i].description << "\n";
+                std::cout << " " << get_type_str(opts[i].type) << ", " << get_necessity_str(opts[i].necessity) << ", " << opts[i].description << "\n";
+                std::cout << shackled_with.str();
             }
         }
 
@@ -196,7 +242,7 @@ namespace coderatny
             {
                 if (argv[i][0] == '-')
                 {
-                    idx = find_in_vector_of_vector(argv[i]);
+                    idx = get_opt_index(argv[i]);
                     if (idx == -1)
                     {
                         std::cout << "unrecognized args!\n";
@@ -215,7 +261,8 @@ namespace coderatny
 
             for (size_t i = 0; i < opts.size(); i++)
             {
-                if (args[i].size() == 0) {
+                if (args[i].size() == 0)
+                {
                     if (opts[i].necessity == ARGS_OPTIONAL)
                     {
                         continue;
@@ -248,6 +295,8 @@ namespace coderatny
                     }
                 }
             }
+
+            check_shackled_opts();
         }
 
         void set_opt(std::string opt, cdrtnrgs_necessity necessity, cdrtnrgs_type type, std::string description)
@@ -273,7 +322,7 @@ namespace coderatny
         std::vector<T> get_args_vector(std::string arg)
         {
             std::vector<T> ret;
-            int idx = find_in_vector_of_vector(arg);
+            int idx = get_opt_index(arg);
             if (idx == -1)
             {
                 return ret;
@@ -306,7 +355,7 @@ namespace coderatny
 
         std::vector<std::string> get_args_vector_string(std::string arg)
         {
-            int idx = find_in_vector_of_vector(arg);
+            int idx = get_opt_index(arg);
             if (idx == -1)
             {
                 return std::vector<std::string>();
@@ -318,7 +367,7 @@ namespace coderatny
         template <typename T>
         T get_arg(std::string arg)
         {
-            int idx = find_in_vector_of_vector(arg);
+            int idx = get_opt_index(arg);
 
             if ((idx == -1))
             {
@@ -328,21 +377,24 @@ namespace coderatny
 
             if (typeid(T).hash_code() == typeid(int).hash_code())
             {
-                if (args.at(idx).size() == 0) {
+                if (args.at(idx).size() == 0)
+                {
                     return -1;
                 }
                 return std::stoi(args.at(idx)[0]);
             }
             else if (typeid(T).hash_code() == typeid(float).hash_code())
             {
-                if (args.at(idx).size() == 0) {
+                if (args.at(idx).size() == 0)
+                {
                     return -1;
                 }
                 return std::stof(args.at(idx)[0]);
             }
             else if (typeid(T).hash_code() == typeid(char).hash_code())
             {
-                if (args.at(idx).size() == 0) {
+                if (args.at(idx).size() == 0)
+                {
                     return -1;
                 }
                 return args.at(idx)[0][0];
@@ -357,18 +409,37 @@ namespace coderatny
 
         std::string get_arg_string(std::string arg)
         {
-            int idx = find_in_vector_of_vector(arg);
+            int idx = get_opt_index(arg);
 
             if (idx == -1)
             {
                 return "";
             }
 
-            if (args.at(idx).size() == 0) {
+            if (args.at(idx).size() == 0)
+            {
                 return "";
             }
 
             return args.at(idx)[0];
+        }
+
+        int shackle_opts(std::vector<std::string> b)
+        {
+            for (auto &i : b)
+            {
+                int idx = get_opt_index(i);
+                if (idx == -1)
+                {
+                    std::cout << "unknown opt!\n";
+                    exit(1);
+                }
+                opts[idx].shackles = true;
+                opts[idx].shackle_id = shackled_opts.size();
+            }
+            shackled_opts.push_back(b);
+
+            return 0;
         }
     };
 }
