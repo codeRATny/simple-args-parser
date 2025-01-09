@@ -1,6 +1,3 @@
-# Simple args parser
+# Simple c++ library args parser
 
-## example run
-./example -b 1 2 -a a b -c 1.23 12.1 -d aboba kek -e a -f 32 -g 3.23 -h hello -i
-
-## -help and --help for view all info about yours opts
+...
