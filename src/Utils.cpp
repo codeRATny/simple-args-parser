@@ -2,19 +2,6 @@
 
 #include "Args/Assert.hpp"
 
-std::string args::utils::TypeToStr(ArgType type)
-{
-    switch (type)
-    {
-    case ArgType::ARGS_REQUIRED:
-        return "REQUIRED ARGUMENT";
-    case ArgType::ARGS_OPTIONAL:
-        return "OPTIONAL ARGUMENT";
-    default:
-        return "UNKNOWN";
-    }
-}
-
 bool args::utils::Stob(const std::string &value)
 {
     if (value == "on")

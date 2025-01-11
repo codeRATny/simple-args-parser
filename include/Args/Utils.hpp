@@ -12,7 +12,6 @@ namespace args
 {
     namespace utils
     {
-        std::string TypeToStr(ArgType type);
         bool Stob(const std::string &str);
         int Stoi(const std::string &str);
         long Stol(const std::string &str);
