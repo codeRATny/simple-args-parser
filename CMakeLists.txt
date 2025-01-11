@@ -9,8 +9,8 @@ option(RELEASE_BUILD "Silence all runtime asserts" OFF)
 # Build flags
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -mavx2 -mno-avx512f -Wall -Werror -Wempty-body -Wredundant-move -pedantic -Wno-gnu -Wno-nested-anon-types -Wno-writable-strings -Wimplicit-fallthrough -Wno-deprecated -O3")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -mavx2 -mno-avx512f -Wall -Werror -Wempty-body -pedantic -Wno-gnu -Wno-nested-anon-types -Wno-writable-strings -Wno-deprecated -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wempty-body -Wredundant-move -pedantic -Wimplicit-fallthrough")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -Werror -Wempty-body -pedantic -Wno-nested-anon-types")
 
 if (NO_AUTH_BUILD)
   add_compile_definitions(RELEASE_BUILD)

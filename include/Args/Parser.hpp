@@ -36,7 +36,7 @@ namespace args
     };
 
     template <typename T>
-    class OptTuple : public OptBase
+    class OptTuple final : public OptBase
     {
     public:
         OptTuple()
