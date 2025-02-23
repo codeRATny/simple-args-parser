@@ -1,6 +1,7 @@
 #ifndef _ARGS_PARSER_HPP_
 #define _ARGS_PARSER_HPP_
 
+#include <map>
 #include <string>
 #include <memory>
 #include <vector>
@@ -9,201 +10,229 @@
 #include <unordered_map>
 
 #include "Args/Utils.hpp"
-#include "Args/TypeTraits.hpp"
+#include "Args/Except.hpp"
+#include "Args/Caster.hpp"
+#include "Args/TypeConcepts.hpp"
 
 namespace args
 {
-    struct OptBase
+
+struct OptBase
+{
+public:
+    using Ptr = std::shared_ptr<OptBase>;
+
+    virtual void SetValue(const std::string &value) = 0;
+    virtual bool HaveValue() = 0;
+    virtual ArgType GetArgType() const = 0;
+    virtual std::string GetDescription() const = 0;
+
+    std::string_view GetTypeName() const
     {
-    public:
-        using Ptr = std::shared_ptr<OptBase>;
+        return _type_name;
+    }
 
-        virtual void SetValue(const std::string &value) = 0;
-        virtual bool HaveValue() = 0;
-        virtual ArgType GetArgType() const = 0;
-        virtual std::string GetDescription() const = 0;
+    bool IsCollection() const
+    {
+        return _is_collection;
+    }
 
-        std::pair<OptTypeMain, OptTypeSub> GetType() const
+protected:
+    friend class Parser;
+
+    std::vector<std::string> _shackled_with;
+
+    bool _is_collection;
+    std::string_view _type_name;
+};
+
+template <typename T>
+class OptTuple final : public OptBase
+{
+public:
+    OptTuple()
+    {
+        if constexpr (details::any_appendable_container<T>)
         {
-            return _opt_type;
+            OptBase::_is_collection = true;
+            OptBase::_type_name = utils::GetTypeName<typename T::value_type>();
         }
+        else
+        {
+            OptBase::_type_name = utils::GetTypeName<T>();
+        }
+    }
 
-    protected:
-        friend class Parser;
+    OptTuple(const OptTuple &opt)
+    {
+        type = opt.type;
+        description = opt.description;
+        OptBase::_type_name = opt._type_name;
+        OptBase::_is_collection = opt._is_collection;
+    }
 
-        std::vector<std::string> _shackled_with;
-        std::pair<OptTypeMain, OptTypeSub> _opt_type = {OptTypeMain::UNDEF, OptTypeSub::NONE};
-    };
+    OptTuple(OptTuple &&opt)
+    {
+        type = opt.type;
+        description = std::move(opt.description);
+        OptBase::_type_name = std::move(opt._type_name);
+        OptBase::_is_collection = opt._is_collection;
+    }
+
+    bool HaveValue() override
+    {
+        return _value.has_value();
+    }
+
+    ArgType GetArgType() const override
+    {
+        return type;
+    }
+
+    std::string GetDescription() const override
+    {
+        return description;
+    }
+
+    void SetValue(const std::string &value) override
+    {
+        if constexpr (details::have_caster<T>)
+        {
+            if (_value.has_value())
+                throw ParseError("Argument already have value");
+
+            auto tmp_value = caster<T>::cast_value(value);
+            _value = std::move(tmp_value);
+        }
+        else if constexpr (details::insertable_container<T>)
+        {
+            if (!_value.has_value())
+                _value = T();
+
+            auto tmp_value = caster<decltype(typename T::value_type())>::cast_value(value);
+            _value.value().insert(std::move(tmp_value));
+        }
+        else if constexpr (details::pushable_container<T>)
+        {
+            if (!_value.has_value())
+                _value = T();
+
+            auto tmp_value = caster<decltype(typename T::value_type())>::cast_value(value);
+            _value.value().push(std::move(tmp_value));
+        }
+        else if constexpr (details::front_pushable_container<T>)
+        {
+            if (!_value.has_value())
+                _value = T();
+
+            auto tmp_value = caster<decltype(typename T::value_type())>::cast_value(value);
+            _value.value().push_front(std::move(tmp_value));
+        }
+        else if constexpr (details::push_backable_container<T>)
+        {
+            if (!_value.has_value())
+                _value = T();
+
+            auto tmp_value = caster<decltype(typename T::value_type())>::cast_value(value);
+            _value.value().push_back(std::move(tmp_value));
+        }
+        else
+        {
+            []<bool flag = false>(){static_assert(flag, "Unknown type for arg parser");}();
+        }
+    }
+
+    ArgType type;
+    std::string description;
+
+private:
+    friend class Parser;
+
+    std::optional<T> _value;
+};
+
+class Parser
+{
+public:
+    Parser() : _want_to_feed_value(false), _mode(ParserMode::HANDLE_ALL)
+    {};
+
+    Parser(ParserMode mode) : _want_to_feed_value(false), _mode(mode)
+    {};
+
+    void Parse(int argc, char **argv);
+
+    void VerifyRequiredOpts();
+
+    void VerifyShackledOpts();
 
     template <typename T>
-    class OptTuple final : public OptBase
+    std::optional<T> GetOptValue(const std::string &opt_name) const
     {
-    public:
-        OptTuple()
-        {
-            OptBase::_opt_type = utils::GetOptType<T>();
-        }
+        auto opt_it = _opts.find(opt_name);
+        if (opt_it == _opts.end())
+            throw OptionError("Unknown option");
 
-        OptTuple(const OptTuple &opt)
-        {
-            type = opt.type;
-            description = opt.description;
-            OptBase::_opt_type = opt._opt_type;
-        }
+        auto opt_ptr = dynamic_cast<OptTuple<T>*>(opt_it->second.get());
+        if (opt_ptr == nullptr)
+            throw TypeError("Invalid type for option");
 
-        OptTuple(OptTuple &&opt)
-        {
-            type = opt.type;
-            description = std::move(opt.description);
-            OptBase::_opt_type = std::move(opt._opt_type);
-        }
+        return opt_ptr->_value;
+    }
 
-        bool HaveValue() override
-        {
-            return _value.has_value();
-        }
-
-        ArgType GetArgType() const override
-        {
-            return type;
-        }
-
-        std::string GetDescription() const override
-        {
-            return description;
-        }
-
-        void SetValue(const std::string &value) override
-        {
-            if constexpr (details::is_allowed_type_v<T>)
-            {
-                if (_value.has_value())
-                    throw std::runtime_error("Argument already have value");
-
-                auto tmp_value = utils::CastValue<T>(value);
-                _value = std::move(tmp_value);
-            }
-            else if constexpr (details::is_insertable_v<T>)
-            {
-                if (!_value.has_value())
-                    _value = T();
-
-                auto tmp_value = utils::CastValue<decltype(typename T::value_type())>(value);
-                _value.value().insert(std::move(tmp_value));
-            }
-            else if constexpr (details::is_push_backable_v<T>)
-            {
-                if (!_value.has_value())
-                    _value = T();
-
-
-                auto tmp_value = utils::CastValue<decltype(typename T::value_type())>(value);
-                _value.value().push_back(std::move(tmp_value));
-            }
-            else if constexpr (details::is_pushable_v<T>)
-            {
-                if (!_value.has_value())
-                    _value = T();
-
-                auto tmp_value = utils::CastValue<decltype(typename T::value_type())>(value);
-                _value.value().push(std::move(tmp_value));
-            }
-            else
-            {
-                []<bool flag = false>(){static_assert(flag, "Unknown type for arg parser");}();
-            }
-        }
-
-        ArgType type;
-        std::string description;
-
-    private:
-        friend class Parser;
-
-        std::optional<T> _value;
-    };
-
-    class Parser
+    template <typename T>
+    auto &SetOpt(const std::vector<std::string> &names, ArgType type, const std::string &description)
     {
-    public:
-        Parser() : _want_to_feed_value(false), _mode(ParserMode::HANDLE_ALL)
-        {};
+        OptTuple<T> opt;
+        opt.type = type;
+        opt.description = description;
+        auto opt_ptr = std::make_shared<OptTuple<T>>(std::move(opt));
 
-        Parser(ParserMode mode) : _want_to_feed_value(false), _mode(mode)
-        {};
-
-        void Parse(int argc, char **argv);
-
-        void VerifyRequiredOpts();
-
-        void VerifyShackledOpts();
-
-        template <typename T>
-        std::optional<T> GetOptValue(const std::string &opt_name)
+        for (const auto &name : names)
         {
-            auto opt_it = _opts.find(opt_name);
-            if (opt_it == _opts.end())
-                throw std::invalid_argument("Unknown option");
-
-            auto opt_ptr = dynamic_cast<OptTuple<T>*>(opt_it->second.get());
-            if (opt_ptr == nullptr)
-                throw std::runtime_error("Invalid type for option");
-
-            return opt_ptr->_value;
+            _opts[name] = opt_ptr;
         }
 
-        template <typename T>
-        auto &SetOpt(const std::vector<std::string> &names, ArgType type, const std::string &description)
-        {
-            OptTuple<T> opt;
-            opt.type = type;
-            opt.description = description;
-            auto opt_ptr = std::make_shared<OptTuple<T>>(std::move(opt));
+        return *this;
+    }
 
-            for (const auto &name : names)
-            {
-                _opts[name] = opt_ptr;
-            }
+    void ShackleOpts(const std::vector<std::string> &shackable_opt);
 
-            return *this;
-        }
+    void SetHelpCb(const std::function<void(const std::unordered_map<const OptBase *, std::vector<std::string>> &)> &cb)
+    {
+        _help_cb = cb;
+    }
 
-        void ShackleOpts(const std::vector<std::string> &shackable_opt);
+    void SetAfterHelpCb(const std::function<void()> &cb)
+    {
+        _after_help_cb = cb;
+    }
 
-        void SetHelpCb(const std::function<void(const std::unordered_map<const OptBase *, std::vector<std::string>> &)> &cb)
-        {
-            _help_cb = cb;
-        }
+private:
 
-        void SetAfterHelpCb(const std::function<void()> &cb)
-        {
-            _after_help_cb = cb;
-        }
+    void _FeedArg(const std::string &arg);
 
-    private:
+    void _HandleNewArg(const std::string &arg);
 
-        void _FeedArg(const std::string &arg);
+    void _HandleArgValue(const std::string &val);
 
-        void _HandleNewArg(const std::string &arg);
+    void _HandleHelp();
 
-        void _HandleArgValue(const std::string &val);
+    void _HandleAfterHelp();
 
-        void _HandleHelp();
+    std::map<std::string, OptBase::Ptr> _opts;
 
-        void _HandleAfterHelp();
+    OptBase::Ptr *cur_opt;
 
-        std::unordered_map<std::string, OptBase::Ptr> _opts;
+    std::function<void(const std::unordered_map<const OptBase *, std::vector<std::string>> &)> _help_cb;
 
-        OptBase::Ptr *cur_opt;
+    std::function<void()> _after_help_cb;
 
-        std::function<void(const std::unordered_map<const OptBase *, std::vector<std::string>> &)> _help_cb;
+    bool _want_to_feed_value;
 
-        std::function<void()> _after_help_cb;
+    ParserMode _mode;
+};
 
-        bool _want_to_feed_value;
+} // namespace args
 
-        ParserMode _mode;
-    };
-}
-
-#endif
+#endif // _ARGS_PARSER_HPP_

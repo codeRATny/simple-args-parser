@@ -6,130 +6,56 @@
 #include <stdexcept>
 
 #include "Args/Deffs.hpp"
-#include "Args/TypeTraits.hpp"
+#include "Args/TypeConcepts.hpp"
 
-namespace args
+namespace args::utils
 {
-    namespace utils
+
+template <typename T>
+constexpr std::string_view GetTypeName()
+{
+    if constexpr (std::is_same_v<int, T>)
     {
-        bool Stob(const std::string &str);
-        int Stoi(const std::string &str);
-        long Stol(const std::string &str);
-        unsigned int Stoui(const std::string &str);
-        unsigned long Stoul(const std::string &str);
-        float Stof(const std::string &str);
-        double Stod(const std::string &str);
-
-        template <typename T>
-        T CastValue(const std::string &value)
-        {
-            if constexpr (std::is_same_v<int, T>)
-            {
-                return Stoi(value);
-            }
-            else if constexpr (std::is_same_v<long, T>)
-            {
-                return Stol(value);
-            }
-            else if constexpr (std::is_same_v<unsigned int, T>)
-            {
-                return Stoui(value);
-            }
-            else if constexpr (std::is_same_v<unsigned long, T>)
-            {
-                return Stoul(value);
-            }
-            else if constexpr (std::is_same_v<double, T>)
-            {
-                return Stod(value);
-            }
-            else if constexpr (std::is_same_v<float, T>)
-            {
-                return Stof(value);
-            }
-            else if constexpr (std::is_same_v<bool, T>)
-            {
-                return Stob(value);
-            }
-            else if constexpr (std::is_same_v<std::string, T>)
-            {
-                return value;
-            }
-            else
-            {
-                []<bool flag = false>(){static_assert(flag, "Unknown type for arg parser");}();
-            }
-
-            __builtin_unreachable();
-        }
-
-        template <typename T>
-        OptTypeMain GetOptMainType()
-        {
-            if constexpr (std::is_same_v<int, T>)
-            {
-                return OptTypeMain::INTEGER;
-            }
-            else if constexpr (std::is_same_v<long, T>)
-            {
-                return OptTypeMain::BIG_INTEGER;
-            }
-            else if constexpr (std::is_same_v<unsigned int, T>)
-            {
-                return OptTypeMain::UNSIGNED_INTEGER;
-            }
-            else if constexpr (std::is_same_v<unsigned long, T>)
-            {
-                return OptTypeMain::UNSIGNED_BIG_INTEGER;
-            }
-            else if constexpr (std::is_same_v<double, T>)
-            {
-                return OptTypeMain::DOUBLE_PRECISION_FLOAT;
-            }
-            else if constexpr (std::is_same_v<float, T>)
-            {
-                return OptTypeMain::SINGLE_PRECISION_FLOAT;
-            }
-            else if constexpr (std::is_same_v<bool, T>)
-            {
-                return OptTypeMain::BOOLEAN;
-            }
-            else if constexpr (std::is_same_v<std::string, T>)
-            {
-                return OptTypeMain::STRING;
-            }
-            else
-            {
-                []<bool flag = false>(){static_assert(flag, "Unknown type for arg parser");}();
-            }
-
-            __builtin_unreachable();
-        }
-
-        template <typename T>
-        std::pair<OptTypeMain, OptTypeSub> GetOptType()
-        {
-            if constexpr (details::is_insertable_v<T> || details::is_push_backable_v<T> ||
-                          details::is_pushable_v<T>)
-            {
-                return std::make_pair(GetOptMainType<decltype(typename T::value_type())>(), OptTypeSub::VALUE_COLLECTION);
-            }
-            else if constexpr (details::is_allowed_type_v<T>)
-            {
-                return std::make_pair(GetOptMainType<T>(), OptTypeSub::NONE);
-            }
-            else
-            {
-                []<bool flag = false>(){static_assert(flag, "Unknown type for arg parser");}();
-            }
-
-            __builtin_unreachable();
-        }
-
-        std::string OptTypeMainToString(const OptTypeMain type);
-        std::string OptTypeToString(const std::pair<OptTypeMain, OptTypeSub> &type);
-        std::string ArgTypeToString(const ArgType type);
+        return type_names::int_type;
     }
+    else if constexpr (std::is_same_v<long, T>)
+    {
+        return type_names::long_type;
+    }
+    else if constexpr (std::is_same_v<unsigned int, T>)
+    {
+        return type_names::unsigned_int_type;
+    }
+    else if constexpr (std::is_same_v<unsigned long, T>)
+    {
+        return type_names::unsigned_long_type;
+    }
+    else if constexpr (std::is_same_v<double, T>)
+    {
+        return type_names::double_type;
+    }
+    else if constexpr (std::is_same_v<float, T>)
+    {
+        return type_names::float_type;
+    }
+    else if constexpr (std::is_same_v<bool, T>)
+    {
+        return type_names::bool_type;
+    }
+    else if constexpr (details::string_constructible<T>)
+    {
+        return type_names::string_type;
+    }
+    else
+    {
+        []<bool flag = false>(){static_assert(flag, "Unknown type for arg parser");}();
+    }
+
+    __builtin_unreachable();
 }
 
-#endif
+std::string ArgTypeToString(const ArgType type);
+
+} // namespace args::utils
+
+#endif // _ARGS_UTILS_HPP_

@@ -5,7 +5,10 @@
 
 #include "Args/Utils.hpp"
 
-void args::defaults::placeholders::Help(const std::unordered_map<const OptBase *, std::vector<std::string>> &options)
+namespace args::defaults::placeholders
+{
+
+void Help(const std::unordered_map<const OptBase *, std::vector<std::string>> &options)
 {
     size_t longest_name = 0;
     size_t max_aliases = 0;
@@ -57,13 +60,23 @@ void args::defaults::placeholders::Help(const std::unordered_map<const OptBase *
             }
         }
 
-        std::cout << " | type: " << utils::OptTypeToString(opt_ptr->GetType()) << ", ";
+        if (opt_ptr->IsCollection())
+        {
+            std::cout << " | type: collection of " << opt_ptr->GetTypeName() << ", ";
+        }
+        else
+        {
+            std::cout << " | type: " << opt_ptr->GetTypeName() << ", ";
+        }
+
         std::cout << "description: " << opt_ptr->GetDescription() << ", ";
         std::cout << utils::ArgTypeToString(opt_ptr->GetArgType()) << std::endl;
     }
 }
 
-void args::defaults::placeholders::AfterHelp()
+void AfterHelp()
 {
     exit(0);
 }
+
+} // namespace args::defaults::placeholders

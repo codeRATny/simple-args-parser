@@ -5,7 +5,10 @@
 #include "Args/Help.hpp"
 #include "Args/Assert.hpp"
 
-void args::Parser::Parse(int argc, char **argv)
+namespace args
+{
+
+void Parser::Parse(int argc, char **argv)
 {
     if (argc >= 2)
     {
@@ -26,16 +29,16 @@ void args::Parser::Parse(int argc, char **argv)
     VerifyShackledOpts();
 }
 
-void args::Parser::VerifyRequiredOpts()
+void Parser::VerifyRequiredOpts()
 {
     for (const auto &[opt_name, opt] : _opts)
     {
         if (opt->GetArgType() == ArgType::ARGS_REQUIRED && !opt->HaveValue())
-            throw std::runtime_error("Required opt " + opt_name + " don't have value");
+            throw OptionError("Required opt " + opt_name + " don't have value");
     }
 }
 
-void args::Parser::VerifyShackledOpts()
+void Parser::VerifyShackledOpts()
 {
     for (const auto &[opt_name, opt] : _opts)
     {
@@ -43,22 +46,22 @@ void args::Parser::VerifyShackledOpts()
         {
             auto shackled_it = _opts.find(shackled_opt_name);
             if (shackled_it == _opts.end())
-                throw std::invalid_argument("Unkonwn shackled opt");
+                throw OptionError("Unknown shackled opt");
 
             if (!shackled_it->second->HaveValue())
-                throw std::runtime_error("Shackled opt dont have value");
+                throw OptionError("Shackled opt dont have value");
         }
 
     }
 }
 
-void args::Parser::ShackleOpts(const std::vector<std::string> &shackable_opt)
+void Parser::ShackleOpts(const std::vector<std::string> &shackable_opt)
 {
     for (const auto &opt_name : shackable_opt)
     {
         auto opt_it = _opts.find(opt_name);
         if (opt_it == _opts.end())
-            throw std::invalid_argument("Unknown arg to shackle " + opt_name);
+            throw OptionError("Unknown arg to shackle " + opt_name);
 
         auto tmp = shackable_opt;
         std::erase_if(tmp, [&](const auto &val)
@@ -70,7 +73,7 @@ void args::Parser::ShackleOpts(const std::vector<std::string> &shackable_opt)
     }
 }
 
-void args::Parser::_FeedArg(const std::string &arg)
+void Parser::_FeedArg(const std::string &arg)
 {
     if (arg.starts_with("-"))
     {
@@ -82,7 +85,7 @@ void args::Parser::_FeedArg(const std::string &arg)
     }
 }
 
-void args::Parser::_HandleNewArg(const std::string &arg)
+void Parser::_HandleNewArg(const std::string &arg)
 {
     auto opt_it = _opts.find(arg);
     if (opt_it == _opts.end())
@@ -90,7 +93,7 @@ void args::Parser::_HandleNewArg(const std::string &arg)
         _want_to_feed_value = false;
 
         if (_mode == ParserMode::HANDLE_ALL)
-            throw std::invalid_argument("Unknown argument \"" + arg + "\"");
+            throw ParseError("Unknown argument \"" + arg + "\"");
 
         return;
     }
@@ -99,7 +102,7 @@ void args::Parser::_HandleNewArg(const std::string &arg)
     cur_opt = &opt_it->second;
 }
 
-void args::Parser::_HandleArgValue(const std::string &val)
+void Parser::_HandleArgValue(const std::string &val)
 {
     if (_want_to_feed_value)
     {
@@ -108,7 +111,7 @@ void args::Parser::_HandleArgValue(const std::string &val)
     }
 }
 
-void args::Parser::_HandleHelp()
+void Parser::_HandleHelp()
 {
     std::unordered_map<const OptBase *, std::vector<std::string>> option_aliases;
 
@@ -123,10 +126,12 @@ void args::Parser::_HandleHelp()
         defaults::placeholders::Help(option_aliases);
 }
 
-void args::Parser::_HandleAfterHelp()
+void Parser::_HandleAfterHelp()
 {
     if (_after_help_cb)
         _after_help_cb();
     else
         defaults::placeholders::AfterHelp();
 }
+
+} // namespace args

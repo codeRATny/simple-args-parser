@@ -10,4 +10,4 @@
 #   define assert(x) void (0)
 #endif
 
-#endif
+#endif // _ARGS_ASSERT_HPP_

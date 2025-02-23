@@ -3,17 +3,13 @@
 
 #include "Args/Parser.hpp"
 
-namespace args
+namespace args::defaults::placeholders
 {
-    namespace defaults
-    {
-        namespace placeholders
-        {
-            void Help(const std::unordered_map<const OptBase *, std::vector<std::string>> &options);
 
-            void AfterHelp();
-        }
-    }
-}
+void Help(const std::unordered_map<const OptBase *, std::vector<std::string>> &options);
 
-#endif
+void AfterHelp();
+
+} // namespace args::defaults::placeholders
+
+#endif // _ARGS_HELP_HPP_

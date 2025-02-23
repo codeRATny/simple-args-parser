@@ -3,8 +3,10 @@ cmake_minimum_required(VERSION 3.0)
 project(SimpleArgsParser)
 
 set(LIBRARY_NAME "argsparser")
+set(EXECUTABLE_OUTPUT_PATH "examples")
 
-option(RELEASE_BUILD "Silence all runtime asserts" OFF)
+option(BUILD_WITHOUT_ASSERTS "Silence all runtime asserts"     OFF)
+option(BUILD_EXAMPLES        "Build examples of library usage" ON )
 
 # Build flags
 set(CMAKE_CXX_STANDARD 20)
@@ -12,7 +14,7 @@ set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror -Wempty-body -Wredundant-move -pedantic -Wimplicit-fallthrough")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -Werror -Wempty-body -pedantic -Wno-nested-anon-types")
 
-if (NO_AUTH_BUILD)
+if (BUILD_WITHOUT_ASSERTS)
   add_compile_definitions(RELEASE_BUILD)
 endif()
 
@@ -31,11 +33,27 @@ execute_process(
 string(REPLACE "\n" ";" SOURCE_DIR_HEADER ${SOURCE_DIR_HEADER})
 
 add_library(${LIBRARY_NAME} STATIC ${LIBRARY_SRC})
-
 include_directories(${SOURCE_DIR_HEADER})
 
-add_executable(basic_usage ${PROJECT_SOURCE_DIR}/examples/basic_usage.cpp)
-target_link_libraries(basic_usage ${LIBRARY_NAME})
+if (BUILD_EXAMPLES)
+  file(GLOB_RECURSE APPS_LIST
+    ${CMAKE_CURRENT_SOURCE_DIR}/examples/*.cpp)
 
-# add_executable(${CMAKE_CURRENT_SOURCE_DIR}/examples/example.cpp shacke_opts)
-# target_link_libraries(shacke_opts ${LIBRARY_NAME})
+  foreach(FILE ${APPS_LIST})
+      string(REPLACE "/" " " FILE_STRINGS ${FILE})
+      separate_arguments(FILE_STRINGS)
+
+      list(GET FILE_STRINGS -1 EXECUTABLE_FILE_NAME)
+
+      string(REPLACE "." " " EXECUTABLE_STRINGS ${EXECUTABLE_FILE_NAME})
+      separate_arguments(EXECUTABLE_STRINGS)
+      list(GET EXECUTABLE_STRINGS 0 EXECUTABLE_NAME)
+
+      add_executable(${EXECUTABLE_NAME} ${FILE})
+
+      target_link_libraries(${EXECUTABLE_NAME} ${LIBRARY_NAME})
+      target_link_libraries(${EXECUTABLE_NAME} ${TARGET_NAME} "-rdynamic")
+
+      message("-- Compile example: ${EXECUTABLE_NAME}")
+  endforeach()
+endif()
